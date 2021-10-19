@@ -3,7 +3,7 @@ services:
   web:
     build: ./src/
     ports:
-      - "1323:1323"
+      - "80:80"
     volumes:
       - ./src/:/app/
     command: ["./run.sh"]
