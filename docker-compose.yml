@@ -11,6 +11,7 @@ services:
       - redisdb
     environment:
       - REDISHOST=redisdb:6379
+      - SERVERPORT=80
   admin:
     build: ./admin/
     volumes:

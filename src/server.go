@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"html/template"
 	"io"
 	"math/rand"
@@ -74,7 +75,7 @@ func main() {
 	e.File("/favicon.ico", "static/favicon.ico")
 	e.File("/style.css", "static/style.css")
 	if rdb != nil {
-		e.Logger.Fatal(e.Start(":1323"))
+		e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", os.Getenv("SERVERPORT"))))
 	} else {
 		e.Logger.Fatal("Failed to connect to redis")
 	}
