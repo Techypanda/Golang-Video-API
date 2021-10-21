@@ -16,6 +16,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 var ctx = context.Background()
@@ -117,7 +118,12 @@ func main() {
 	e.File("/favicon.ico", "static/favicon.ico")
 	e.File("/style.css", "static/style.css")
 	if rdb != nil {
-		e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", os.Getenv("SERVERPORT"))))
+		if os.Getenv("SERVERPORT") == "443" {
+			e.AutoTLSManager.Cache = autocert.DirCache("/var/www/.cache")
+			e.Logger.Fatal(e.StartAutoTLS(":443"))
+		} else {
+			e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", os.Getenv("SERVERPORT"))))
+		}
 	} else {
 		e.Logger.Fatal("Failed to connect to redis")
 	}

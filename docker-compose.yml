@@ -3,7 +3,7 @@ services:
   web:
     build: ./src/
     ports:
-      - "80:80"
+      - "443:443"
     volumes:
       - ./src/:/app/
     command: ["./run.sh"]
@@ -11,7 +11,7 @@ services:
       - redisdb
     environment:
       - REDISHOST=redisdb:6379
-      - SERVERPORT=80
+      - SERVERPORT=443
   admin:
     build: ./admin/
     volumes:
