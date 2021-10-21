@@ -12,8 +12,11 @@ import (
 	math_rand "math/rand"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/go-playground/validator"
 	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
@@ -21,12 +24,21 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 )
 
+var sessions = []string{}
 var ctx = context.Background()
 var rdb = redis.NewClient(&redis.Options{
 	Addr:     os.Getenv("REDISHOST"),
 	Password: "", // no password set
 	DB:       0,  // use default DB
 })
+
+type AuthenticationPayload struct {
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+type CustomValidator struct {
+	validator *validator.Validate
+}
 
 type Template struct {
 	templates *template.Template
@@ -85,18 +97,77 @@ func downloadVideo(url string) []byte {
 	return bytes
 }
 
-func getVideo(c echo.Context) error {
-	keys, err := fetchKeys()
-	if err != nil {
-		return c.String(http.StatusInternalServerError, err.Error())
+func (cv *CustomValidator) Validate(i interface{}) error {
+	if err := cv.validator.Struct(i); err != nil {
+		// Optionally, you could return the error to give each route more control over the status code
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	tiktokVid, err := rdb.Get(ctx, keys[math_rand.Intn(len(keys))]).Result()
-	if err != nil {
-		return c.String(http.StatusInternalServerError, err.Error())
+	return nil
+}
+
+func login(c echo.Context) error {
+	auth := new(AuthenticationPayload)
+	if err := c.Bind(auth); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	// Swap out for inmemory file
-	videoContents := downloadVideo(tiktokVid)
-	return c.Blob(http.StatusOK, "video/mp4", videoContents)
+	if err := c.Validate(auth); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if auth.Username == "admin" && auth.Password == os.Getenv("ADMINPASSWORD") {
+		guid, err := uuid.NewRandom()
+		if err != nil {
+			panic(err)
+		}
+		sessions = append(sessions, guid.String())
+		cookie := new(http.Cookie)
+		cookie.Name = "session"
+		cookie.Value = guid.String()
+		cookie.Expires = time.Now().Add(24 * time.Hour)
+		cookie.HttpOnly = true
+		cookie.Path = "/"
+		c.SetCookie(cookie)
+		return c.JSON(http.StatusOK, auth)
+	} else {
+		return c.JSON(http.StatusUnauthorized, map[string]interface{}{"error": "Bad Password/Username"})
+	}
+}
+
+// Todo Generate key -> push to url with key, -> use key to return video
+func redirect(c echo.Context) error {
+	return c.Redirect(http.StatusTemporaryRedirect, "/api/v1/video.mp4")
+}
+
+func authenticator(c echo.Context) bool {
+	cookie, err := c.Cookie("session")
+	if err != nil {
+		return false
+	}
+	validSession := false
+	for _, session := range sessions {
+		if cookie.Value == session {
+			validSession = true
+			break
+		}
+	}
+	return validSession
+}
+
+func adminSite(c echo.Context) error {
+	validSession := authenticator(c)
+	if validSession {
+		return c.Render(http.StatusOK, "admin.html", map[string]interface{}{
+			"admin": "true",
+		})
+	} else {
+		cookie := new(http.Cookie)
+		cookie.Name = "session"
+		cookie.MaxAge = -1
+		cookie.Path = "/"
+		c.SetCookie(cookie) // Clear Cookie
+		return c.Render(http.StatusOK, "admin.html", map[string]interface{}{
+			"admin": "false",
+		})
+	}
 }
 
 func main() {
@@ -112,14 +183,23 @@ func main() {
 		LogLevel:  log.ERROR,
 	}))
 	e.Use(middleware.Logger())
+	e.Validator = &CustomValidator{validator: validator.New()}
 	t := &Template{
 		templates: template.Must(template.ParseGlob("static/*.html")),
 	}
 	e.Renderer = t
 	// e.GET("/", getVideo).Name = "Tiktoks"
-	e.Any("/*", getVideo) // Fallback
+	e.GET("/", redirect)
+	e.GET("/api/v1/videos", getVideos)    // Authenticated
+	e.POST("/api/v1/videos", createVideo) // Authenticated
+	e.GET("/api/v1/videos/:id", getVideo)
+	e.DELETE("/api/v1/videos/:id", deleteVideo) // Authenticated
+	e.GET("/api/v1/video.mp4", getRandomVideo)
+	e.GET("/admin", adminSite)
+	e.POST("/api/v1/login", login)
 	e.File("/favicon.ico", "static/favicon.ico")
 	e.File("/style.css", "static/style.css")
+	e.File("/admin.css", "static/admin.css")
 	if rdb != nil {
 		if os.Getenv("SERVERPORT") == "443" {
 			e.AutoTLSManager.Cache = autocert.DirCache("/var/www/.cache")

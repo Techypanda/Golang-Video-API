@@ -3,7 +3,7 @@ services:
   web:
     build: ./src/
     ports:
-      - "443:443"
+      - "8080:8080"
     volumes:
       - ./src/:/app/
     command: ["./run.sh"]
@@ -11,15 +11,16 @@ services:
       - redisdb
     environment:
       - REDISHOST=redisdb:6379
-      - SERVERPORT=443
-  admin:
-    build: ./admin/
-    volumes:
-      - ./admin/:/app/
-    depends_on:
-      - redisdb
-    environment:
-      - REDISHOST=redisdb:6379
+      - SERVERPORT=8080
+      - ADMINPASSWORD=secure
+  # admin:
+  #   build: ./admin/
+  #   volumes:
+  #     - ./admin/:/app/
+  #   depends_on:
+  #     - redisdb
+  #   environment:
+  #     - REDISHOST=redisdb:6379
   redisdb:
     image: redis:6-alpine
     volumes:
