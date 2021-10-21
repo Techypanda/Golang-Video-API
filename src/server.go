@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	crypto_rand "crypto/rand"
+	"crypto/tls"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -120,7 +122,17 @@ func main() {
 	if rdb != nil {
 		if os.Getenv("SERVERPORT") == "443" {
 			e.AutoTLSManager.Cache = autocert.DirCache("/var/www/.cache")
-			e.Logger.Fatal(e.StartAutoTLS(":443"))
+			s := http.Server{
+				Addr:    ":443",
+				Handler: e,
+				TLSConfig: &tls.Config{
+					GetCertificate: e.AutoTLSManager.GetCertificate,
+					NextProtos:     []string{acme.ALPNProto},
+				},
+			}
+			if err = s.ListenAndServeTLS(os.Getenv("CERTFILE"), os.Getenv("KEYFILE")); err != http.ErrServerClosed {
+				e.Logger.Fatal(err)
+			}
 		} else {
 			e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", os.Getenv("SERVERPORT"))))
 		}
