@@ -54,8 +54,9 @@ func fetchKeys() ([]string, error) {
 	for {
 		var err error
 		tmp, cursor, err := rdb.Scan(ctx, cursor, "*", 0).Result()
+		keys = append(keys, tmp...)
 		if err != nil {
-			keys = append(keys, tmp...)
+			panic(err)
 		}
 		if cursor == 0 { // no more keys
 			break
