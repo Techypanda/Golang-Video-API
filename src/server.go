@@ -49,9 +49,18 @@ func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Con
 }
 
 func fetchKeys() ([]string, error) {
-	keys, err := rdb.Keys(ctx, "*").Result()
-	if err != nil {
-		panic(err)
+	var keys []string
+	var cursor uint64
+	for {
+		var err error
+		tmp, cursor, err := rdb.Scan(ctx, cursor, "*", 0).Result()
+		keys = append(keys, tmp...)
+		if err != nil {
+			panic(err)
+		}
+		if cursor == 0 { // no more keys
+			break
+		}
 	}
 	return keys, nil
 }
