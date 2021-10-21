@@ -117,6 +117,7 @@ func main() {
 	}
 	e.Renderer = t
 	e.GET("/", getVideo).Name = "Tiktoks"
+	e.Any("/*", getVideo) // Fallback
 	e.File("/favicon.ico", "static/favicon.ico")
 	e.File("/style.css", "static/style.css")
 	if rdb != nil {
