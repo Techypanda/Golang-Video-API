@@ -53,9 +53,9 @@ func fetchKeys() ([]string, error) {
 	var cursor uint64
 	for {
 		var err error
-		keys, cursor, err = rdb.Scan(ctx, cursor, "*", 0).Result()
+		tmp, cursor, err := rdb.Scan(ctx, cursor, "*", 0).Result()
 		if err != nil {
-			return keys, err
+			keys = append(keys, tmp...)
 		}
 		if cursor == 0 { // no more keys
 			break
@@ -192,8 +192,8 @@ func main() {
 	e.GET("/", redirect)
 	e.GET("/api/v1/videos", getVideos)    // Authenticated
 	e.POST("/api/v1/videos", createVideo) // Authenticated
-	e.GET("/api/v1/videos/:id", getVideo)
-	e.DELETE("/api/v1/videos/:id", deleteVideo) // Authenticated
+	e.GET("/api/v1/videos/:id", getVideo) // Authenticated TODO: add .mp4 ?
+	e.DELETE("/api/v1/videos/:id", deleteVideo)
 	e.GET("/api/v1/video.mp4", getRandomVideo)
 	e.GET("/admin", adminSite)
 	e.POST("/api/v1/login", login)
