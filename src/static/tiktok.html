@@ -1,22 +1,10 @@
 <html lang="en">
-
+<!-- DEPRECATED -->
 <head>
   <title>Techytechster's Depressed Tiktoks</title>
   <link rel="stylesheet" href="./style.css">
   <link rel="icon" href="./favicon.ico" />
   <meta name="viewport" content="width=device-width">
-  <script>
-    let stateCheck = setInterval(() => {
-      const check = document.getElementsByTagName("iframe")
-      if (check && check.length > 0) {
-        check[0].addEventListener("load", () => {
-          document.getElementById("loader").classList.add("hide")
-          document.getElementById("content").classList.remove("hide") // Cant autoplay :( tiktok very mean
-        })
-        clearInterval(stateCheck)
-      }
-    }, 100);
-  </script>
 </head>
 <body>
   <svg width="58" height="58" viewBox="0 0 58 58" xmlns="http://www.w3.org/2000/svg" id="loader">
@@ -77,6 +65,19 @@
     <div class="manipulateMe"></div>
   </div>
   <div class="vert"><div class="hide" id="content">{{ . }}</div></div>
+  <!-- Script For Stopping Loading If Video Done Loading -->
+  <script>
+    let stateCheck = setInterval(() => {
+      const check = document.getElementsByTagName("iframe")
+      if (check && check.length > 0) {
+        check[0].addEventListener("load", () => {
+          document.getElementById("loader").classList.add("hide")
+          document.getElementById("content").classList.remove("hide") // Cant autoplay :( tiktok very mean
+        })
+        clearInterval(stateCheck)
+      }
+    }, 100);
+  </script>
 </body>
 
 </html>

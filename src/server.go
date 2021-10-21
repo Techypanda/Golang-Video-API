@@ -2,13 +2,15 @@ package main
 
 import (
 	"context"
+	crypto_rand "crypto/rand"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
-	"math/rand"
+	math_rand "math/rand"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/labstack/echo/v4"
@@ -47,20 +49,60 @@ func fetchKeys() ([]string, error) {
 	return keys, nil
 }
 
-func getDepression(c echo.Context) error {
+func downloadVideo(url string) []byte {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		panic(err)
+	}
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		// Retry with the cursed host change
+		req, err = http.NewRequest("GET", url, nil)
+		if err != nil {
+			panic(err)
+		}
+		req.Header.Set("Referer", url)
+		resp, err = client.Do(req)
+		if err != nil {
+			panic(err)
+		}
+		if resp.StatusCode != 200 && resp.StatusCode != 206 {
+			panic(errors.New("invalid URL, not returning 200 response or 206"))
+		}
+	}
+	bytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	return bytes
+}
+
+func getVideo(c echo.Context) error {
 	keys, err := fetchKeys()
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
-	tiktokVid, err := rdb.Get(ctx, keys[rand.Intn(len(keys))]).Result()
+	tiktokVid, err := rdb.Get(ctx, keys[math_rand.Intn(len(keys))]).Result()
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
-	return c.Render(http.StatusOK, "tiktok.html", template.HTML(tiktokVid))
+	// Swap out for inmemory file
+	videoContents := downloadVideo(tiktokVid)
+	return c.Blob(http.StatusOK, "video/mp4", videoContents)
 }
 
 func main() {
-	rand.Seed(time.Now().Unix())
+	var b [8]byte
+	_, err := crypto_rand.Read(b[:])
+	if err != nil {
+		panic("cannot seed math/rand package with cryptographically secure random number generator")
+	}
+	math_rand.Seed(int64(binary.LittleEndian.Uint64(b[:])))
 	e := echo.New()
 	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
 		StackSize: 1 << 10, // 1 KB
@@ -71,7 +113,7 @@ func main() {
 		templates: template.Must(template.ParseGlob("static/*.html")),
 	}
 	e.Renderer = t
-	e.GET("/", getDepression).Name = "depressing tiktok"
+	e.GET("/", getVideo).Name = "Tiktoks"
 	e.File("/favicon.ico", "static/favicon.ico")
 	e.File("/style.css", "static/style.css")
 	if rdb != nil {
