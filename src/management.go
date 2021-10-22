@@ -3,8 +3,8 @@ package main
 import (
 	"errors"
 	"io"
-	math_rand "math/rand"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -88,11 +88,11 @@ func createVideo(c echo.Context) error {
 }
 
 func getRandomVideo(c echo.Context) error {
-	keys, err := fetchKeys()
+	randomKey, err := rdb.RandomKey(ctx).Result()
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
-	tiktokVid, err := rdb.Get(ctx, keys[math_rand.Intn(len(keys))]).Result()
+	tiktokVid, err := rdb.Get(ctx, randomKey).Result()
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
@@ -112,6 +112,7 @@ func deleteVideo(c echo.Context) error {
 
 func getVideo(c echo.Context) error {
 	id := c.Param("id")
+	id = strings.Replace(id, ".mp4", "", 1)
 	video, err := rdb.Get(ctx, id).Result()
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]interface{}{

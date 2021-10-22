@@ -13,6 +13,7 @@ services:
       - REDISHOST=redisdb:6379
       - SERVERPORT=8080
       - ADMINPASSWORD=secure
+      - HTTPS=false
   # admin:
   #   build: ./admin/
   #   volumes:

@@ -12,6 +12,7 @@ import (
 	math_rand "math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator"
@@ -124,6 +125,20 @@ func login(c echo.Context) error {
 	}
 }
 
+func discord(c echo.Context) error {
+	randomKey, err := rdb.RandomKey(ctx).Result()
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
+	protocol := "http"
+	if strings.ToUpper(os.Getenv("HTTPS")) == "TRUE" {
+		protocol = "https"
+	}
+	return c.Render(http.StatusOK, "tiktok.html", map[string]interface{}{
+		"ogDataVideoSrc": fmt.Sprintf("%s://%s/api/v1/videos/%s.mp4", protocol, c.Request().Host, randomKey),
+	})
+}
+
 // Todo Generate key -> push to url with key, -> use key to return video
 func redirect(c echo.Context) error {
 	return c.Redirect(http.StatusTemporaryRedirect, "/api/v1/video.mp4")
@@ -187,6 +202,7 @@ func main() {
 	e.GET("/api/v1/videos/:id", getVideo) // Authenticated TODO: add .mp4 ?
 	e.DELETE("/api/v1/videos/:id", deleteVideo)
 	e.GET("/api/v1/video.mp4", getRandomVideo)
+	e.GET("/api/v1/videos/discord", discord)
 	e.GET("/admin", adminSite)
 	e.POST("/api/v1/login", login)
 	e.File("/favicon.ico", "static/favicon.ico")
