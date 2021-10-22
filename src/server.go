@@ -12,6 +12,7 @@ import (
 	math_rand "math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -134,8 +135,32 @@ func discord(c echo.Context) error {
 	if strings.ToUpper(os.Getenv("HTTPS")) == "TRUE" {
 		protocol = "https"
 	}
+	tiktokVid, err := rdb.Get(ctx, randomKey).Result()
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
+
+	filename := uuid.New().String()
+	fo, err := os.Create(fmt.Sprintf("%s.mp4", filename))
+	if err != nil {
+		panic(err)
+	}
+	fo.Write(downloadVideo(tiktokVid))
+	fo.Close()
+	std, err := exec.Command("ffprobe", "-v", "error", "-show_entries", "stream=width,height", "-of", "default=noprint_wrappers=1", fmt.Sprintf("%s.mp4", filename)).Output()
+	if err != nil {
+		panic(err)
+	}
+	dimensions := strings.Split(string(std), "\n")
+	err = os.Remove(fmt.Sprintf("%s.mp4", filename))
+	if err != nil {
+		fmt.Println("Failed to cleanup file, could not delete")
+	}
+
 	return c.Render(http.StatusOK, "tiktok.html", map[string]interface{}{
-		"ogDataVideoSrc": fmt.Sprintf("%s://%s/api/v1/videos/%s.mp4", protocol, c.Request().Host, randomKey),
+		"ogDataVideoSrc":    fmt.Sprintf("%s://%s/api/v1/videos/%s.mp4", protocol, c.Request().Host, randomKey),
+		"ogDataVideoHeight": strings.Replace(dimensions[1], "height=", "", -1),
+		"ogDataVideoWidth":  strings.Replace(dimensions[0], "width=", "", -1),
 	})
 }
 
