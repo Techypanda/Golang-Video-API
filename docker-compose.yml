@@ -20,16 +20,12 @@ services:
     restart: always
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d
+      - ./certs/conf:/etc/letsencrypt
+      - ./certs/www:/var/www/certbot
   certbot:
     image: certbot/certbot
-  # admin:
-  #   build: ./admin/
-  #   volumes:
-  #     - ./admin/:/app/
-  #   depends_on:
-  #     - redisdb
-  #   environment:
-  #     - REDISHOST=redisdb:6379
+      - ./certs/conf:/etc/letsencrypt
+      - ./certs/www:/var/www/certbot
   redisdb:
     image: redis:6-alpine
     volumes:
