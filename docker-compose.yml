@@ -14,6 +14,7 @@ services:
       - PORT=1323
       - DOMAIN=localhost:1323
       - HTTPS=TRUE
+      - ADMINPASSWORD=secure
   redisdb:
     image: redis:6-alpine
     volumes:
