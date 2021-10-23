@@ -11,7 +11,12 @@ services:
       - redisdb
     environment:
       - REDISHOST=redisdb:6379
+      - HTTPS=TRUE
   redisdb:
     image: redis:6-alpine
     volumes:
       - ./db:/data
+  certbot:
+    image: certbot/certbot
+    ports:
+      - 80:80
