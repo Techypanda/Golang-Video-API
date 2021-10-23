@@ -1,9 +1,9 @@
 version: "3.9"
 services:
-  web:
+  tiktok:
     build: ./src/
     ports:
-      - 8080:8080
+      - 443:443
     volumes:
       - ./src/:/app/
     command: ["./run.sh"]
@@ -11,9 +11,6 @@ services:
       - redisdb
     environment:
       - REDISHOST=redisdb:6379
-      - SERVERPORT=8080
-      - ADMINPASSWORD=secure
-      - HTTPS=false
   redisdb:
     image: redis:6-alpine
     volumes:
