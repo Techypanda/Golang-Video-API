@@ -86,7 +86,7 @@ func discord(c echo.Context) error {
 	}
 
 	return c.Render(http.StatusOK, "tiktok.html", map[string]interface{}{
-		"ogDataVideoSrc":    fmt.Sprintf("%s://%s/api/v1/videos/%s.mp4", protocol, c.Request().Host, randomKey),
+		"ogDataVideoSrc":    fmt.Sprintf("%s://%s/api/v1/videos/%s.mp4", protocol, os.Getenv("DOMAIN"), randomKey),
 		"ogDataVideoHeight": strings.Replace(dimensions[1], "height=", "", -1),
 		"ogDataVideoWidth":  strings.Replace(dimensions[0], "width=", "", -1),
 	})
