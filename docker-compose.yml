@@ -3,7 +3,7 @@ services:
   tiktok:
     build: ./src/
     ports:
-      - 443:443
+      - 1323:1323
     volumes:
       - ./src/:/app/
     command: ["./run.sh"]
@@ -11,12 +11,8 @@ services:
       - redisdb
     environment:
       - REDISHOST=redisdb:6379
-      - HTTPS=TRUE
+      - PORT=1323
   redisdb:
     image: redis:6-alpine
     volumes:
       - ./db:/data
-  certbot:
-    image: certbot/certbot
-    ports:
-      - 80:80
