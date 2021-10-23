@@ -6,4 +6,5 @@ WORKDIR /app/
 RUN apk add curl
 RUN apk add  --no-cache ffmpeg
 
-EXPOSE 1323
+EXPOSE 80
+EXPOSE 443
