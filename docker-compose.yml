@@ -12,20 +12,6 @@ services:
       - SERVERPORT=8080
       - ADMINPASSWORD=secure
       - HTTPS=false
-  nginx:
-    ports:
-      - 80:80
-      - 443:443
-    image: nginx:alpine
-    restart: always
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d
-      - ./certs/conf:/etc/letsencrypt
-      - ./certs/www:/var/www/certbot
-  certbot:
-    image: certbot/certbot
-      - ./certs/conf:/etc/letsencrypt
-      - ./certs/www:/var/www/certbot
   redisdb:
     image: redis:6-alpine
     volumes:
