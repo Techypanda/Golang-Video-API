@@ -2,8 +2,6 @@ version: "3.9"
 services:
   web:
     build: ./src/
-    ports:
-      - "8080:8080"
     volumes:
       - ./src/:/app/
     command: ["./run.sh"]
@@ -14,6 +12,16 @@ services:
       - SERVERPORT=8080
       - ADMINPASSWORD=secure
       - HTTPS=false
+  nginx:
+    ports:
+      - 80:80
+      - 443:443
+    image: nginx:alpine
+    restart: always
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d
+  certbot:
+    image: certbot/certbot
   # admin:
   #   build: ./admin/
   #   volumes:
